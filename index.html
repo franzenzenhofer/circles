@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Circles</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="icon" type="image/png" sizes="16x16" href="icon_16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="icon_32x32.png">
+    <link rel="icon" type="image/png" sizes="48x48" href="icon_48x48.png">
+    <link rel="icon" type="image/png" sizes="64x64" href="icon_64x64.png">
+    <link rel="icon" type="image/png" sizes="128x128" href="icon_128x128.png">
+    <link rel="icon" type="image/png" sizes="152x152" href="icon_152x152.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon_192x192.png">
+    <link rel="icon" type="image/png" sizes="256x256" href="icon_256x256.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="icon_152x152.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="icon_192x192.png">
+    <link rel="apple-touch-icon" sizes="256x256" href="icon_256x256.png">
+    <meta name="theme-color" content="#000000"> <!-- Adjust the theme color as needed -->
+    <link rel="shortcut icon" href="favicon.ico">
+    <meta property="og:image" content="preview.png"> <!-- Open Graph Image -->
+    <meta property="og:title" content="Circles">
+    <meta property="og:description" content="Circles">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://circles.franzai.com/"> <!-- Replace with your app's URL -->
+    <script src="https://unpkg.com/roughjs@latest/bundled/rough.js"></script>
+    <style>
+        body, canvas {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            width: 100vw; /* 100% of the viewport width */
+            height: 100vh; /* 100% of the viewport height */
+            background: #ffffff; /* Add a background color */
+            user-select: none; /* Prevent selection */
+
+        }
+        #overlay {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 6vw; /* Relative to the width of the viewport */
+            font-family: 'Courier New', monospace; /* Use a web-safe font */
+            color: rgb(0, 0, 0);
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            animation: fadeOut 4.5s forwards;
+            opacity: 1;
+            width: 100%; /* Make the overlay fit the width of the screen */
+            user-select: none; /* Prevent selection */
+
+        }
+
+@keyframes fadeOut {
+    to { opacity: 0; }
+}
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <div id="overlay"><center>Double tap to create.</br>Slide to tide.</center></div>
+    <script>
+        // Set up canvas and context
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = true;
+
+        const rc = rough.canvas(document.getElementById('gameCanvas'));
+
+        
+        // Function to set canvas dimensions
+        const setCanvasDimensions = (canvas, width, height) => {
+            canvas.width = width;
+            canvas.height = height;
+        };
+
+        // Function to set canvas style
+        const setCanvasStyle = (canvas, height) => {
+            canvas.style.height = `${height}px`;
+        };
+
+        // Function to resize and style canvas
+        const resizeAndStyleCanvas = () => {
+            const viewportHeight = window.innerHeight * 0.9999;
+            setCanvasDimensions(canvas, window.innerWidth, window.innerHeight);
+            setCanvasStyle(canvas, viewportHeight);
+        };
+
+        // Call the function once to set the initial size and style
+        resizeAndStyleCanvas();
+
+        // Attach the function to the window's resize event
+        window.addEventListener('resize', resizeAndStyleCanvas);
+
+    
+        // Helper functions
+        const lerp = (a, b, t) => (1 - t) * a + t * b; // Linear interpolation
+        const getRandomColor = () => {
+            const h = Math.random() * 360;
+            return `hsl(${h}, 100%, 50%)`; // Use HSL for neon colors
+        };
+        const getRandomSpeed = () => (Math.random() - 0.5) * 2;
+        const getRandomRadius = (min, max) => Math.random() * (max - min) + min;
+        let gravitationalCenter = { x: canvas.width / 2, y: canvas.height / 2 };
+      
+        class Particle {
+            constructor(radius, x, y) {
+                this.radius = radius;
+                this.x = x || Math.random() * canvas.width;
+                this.y = y || Math.random() * canvas.height;
+                this.speedX = getRandomSpeed();
+                this.speedY = getRandomSpeed();
+                this.color = getRandomColor();
+                this.spinX = Math.random() * 4 - 2;
+                this.spinY = Math.random() * 4 - 2;
+                this.repulsionStrength = Math.random() * 0.001;
+                this.attractionStrength = Math.random() * 0.002;
+                this.setRoughStyle(); // Call this method to set a random style
+                this.rotation = 0; // Initial rotation angle
+                this.rotationSpeed = Math.random() * 0.4; // Random rotation speed
+
+            }
+
+            setRoughStyle() {
+    const shapes = ['circle'];
+   // const fillStyles = ['hachure', 'solid', 'zigzag', 'cross-hatch', 'dots', 'dashed', 'zigzag-line'];
+   const fillStyles = ['hachure', 'solid', 'zigzag', 'cross-hatch', 'dots', 'dashed', 'zigzag-line'];
+    this.roughShape = shapes[Math.floor(Math.random() * shapes.length)];
+    this.roughOptions = {
+        fill: this.color,
+        roughness: Math.random() * 1,
+        bowing: Math.random() * 2,
+        fillStyle: fillStyles[Math.floor(Math.random() * fillStyles.length)],
+        // other Rough.js options can be added here
+    };
+}
+
+drawTriangle() {
+    // Calculate triangle vertices
+    const height = this.radius * Math.sqrt(3);
+    const points = [
+        [this.x - this.radius, this.y + height / 2],
+        [this.x + this.radius, this.y + height / 2],
+        [this.x, this.y - height / 2]
+    ];
+    rc.polygon(points, this.roughOptions);
+}
+
+
+
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.speedX = getRandomSpeed();
+                this.speedY = getRandomSpeed();
+                this.color = getRandomColor();
+            }
+
+            applyForce(forceX, forceY) {
+                this.speedX += forceX;
+                this.speedY += forceY;
+                this.clampSpeed();
+            }
+
+            clampSpeed() {
+                const maxSpeed = 10;
+                const speed = Math.sqrt(this.speedX * this.speedX + this.speedY * this.speedY);
+                if (speed > maxSpeed) {
+                    this.speedX *= maxSpeed / speed;
+                    this.speedY *= maxSpeed / speed;
+                }
+            }
+
+
+
+        draw() {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fillStyle = this.color;
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        rcdraw() {
+            rc.circle(this.x, this.y, this.radius * 2, { fill: this.color });
+        }
+
+        drawRough() {
+    switch (this.roughShape) {
+        case 'circle':
+            rc.circle(this.x, this.y, this.radius * 2, this.roughOptions);
+            break;
+        case 'rectangle':
+            rc.rectangle(this.x - this.radius, this.y - this.radius, this.radius * 2, this.radius * 2, this.roughOptions);
+            break;
+        case 'triangle':
+            this.drawTriangle();
+            break;
+    }
+}
+
+
+
+            update() {
+                this.handleEdgeRepulsion();
+                this.interactWithParticles();
+                this.applyGravitationalForce();
+                this.updatePosition();
+                this.rotation += this.rotationSpeed; // Update the rotation
+
+// Update the hachureAngle based on the rotation
+this.roughOptions.hachureAngle = (this.rotation * 180 / Math.PI) % 360;
+            }
+
+            handleEdgeRepulsion() {
+                const buffer = -20;
+                if (this.x < -buffer || this.x > canvas.width + buffer) {
+                    const forceX = (canvas.width / 2 - this.x) * 0.01;
+                    this.applyForce(forceX, 0);
+                }
+                if (this.y < -buffer || this.y > canvas.height + buffer) {
+                    const forceY = (canvas.height / 2 - this.y) * 0.01;
+                    this.applyForce(0, forceY);
+                }
+            }
+
+            interactWithParticles() {
+                particles.forEach(otherParticle => {
+                    if (otherParticle === this) return;
+                    const dx = otherParticle.x - this.x;
+                    const dy = otherParticle.y - this.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance < this.radius + otherParticle.radius) {
+                         // Change rotation direction
+            this.rotationSpeed = -this.rotationSpeed;
+            otherParticle.rotationSpeed = -otherParticle.rotationSpeed;
+
+                        // Calculate angle, sine, and cosine
+                        const angle = Math.atan2(dy, dx);
+                        const sin = Math.sin(angle);
+                        const cos = Math.cos(angle);
+
+                        // Rotate particle's position
+                        const pos0 = { x: 0, y: 0 };
+                        const pos1 = { x: dx * cos + dy * sin, y: dy * cos - dx * sin };
+
+                        // Rotate particle's velocity
+                        const vel0 = { x: this.speedX * cos + this.speedY * sin, y: this.speedY * cos - this.speedX * sin };
+                        const vel1 = { x: otherParticle.speedX * cos + otherParticle.speedY * sin, y: otherParticle.speedY * cos - otherParticle.speedX * sin };
+
+                        // Collision response
+                        const vxTotal = vel0.x - vel1.x;
+                        vel0.x = ((this.radius - otherParticle.radius) * vel0.x + 2 * otherParticle.radius * vel1.x) / (this.radius + otherParticle.radius);
+                        vel1.x = vxTotal + vel0.x;
+
+                        // Reduce the effect of the collision response
+                        const bounceFactor = 0.5; // Change this to a value between 0 and 1
+                        vel0.x *= bounceFactor;
+                        vel1.x *= bounceFactor;
+
+                        // Update position
+                        pos0.x += vel0.x;
+                        pos1.x += vel1.x;
+
+                        // Rotate positions back
+                        const pos0F = { x: pos0.x * cos - pos0.y * sin, y: pos0.y * cos + pos0.x * sin };
+                        const pos1F = { x: pos1.x * cos - pos1.y * sin, y: pos1.y * cos + pos1.x * sin };
+
+                        // Adjust positions to prevent overlap
+                        const totalRadius = this.radius + otherParticle.radius;
+                        const overlap = totalRadius - distance;
+                        const adjustmentFactor = overlap / distance;
+                        const adjustmentX = dx * adjustmentFactor;
+                        const adjustmentY = dy * adjustmentFactor;
+                        otherParticle.x += adjustmentX / 2;
+                        otherParticle.y += adjustmentY / 2;
+                        this.x -= adjustmentX / 2;
+                        this.y -= adjustmentY / 2;
+
+                        // Rotate velocities back
+                        this.speedX = vel0.x * cos - vel0.y * sin;
+                        this.speedY = vel0.y * cos + vel0.x * sin;
+                        otherParticle.speedX = vel1.x * cos - vel1.y * sin;
+                        otherParticle.speedY = vel1.y * cos + vel1.x * sin;
+                    }
+                });
+            }
+
+            applyGravitationalForce() {
+                const dx = gravitationalCenter.x - this.x;
+                const dy = gravitationalCenter.y - this.y;
+                let distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance < 1) distance = 1;
+                const gravitationalForce = 0.1;
+                let forceX = (dx / distance) * gravitationalForce;
+                let forceY = (dy / distance) * gravitationalForce;
+                const maxForce = 5;
+                const forceMagnitude = Math.sqrt(forceX * forceX + forceY * forceY);
+                if (forceMagnitude > maxForce) {
+                    const scale = maxForce / forceMagnitude;
+                    forceX *= scale;
+                    forceY *= scale;
+                }
+                this.applyForce(forceX, forceY);
+            }
+
+            updatePosition() {
+                this.x += this.speedX + this.spinX;
+                this.y += this.speedY + this.spinY;
+                this.x = Math.max(Math.min(this.x, canvas.width), 0);
+                this.y = Math.max(Math.min(this.y, canvas.height), 0);
+            }
+        }
+
+        let particles = Array.from({length: 4}, () => new Particle(getRandomRadius(5, 8))); // Half of the particles up to 8 pixels
+        particles = particles.concat(Array.from({length: 12}, () => new Particle(getRandomRadius(9, 25)))); // Other half between 18 and 25 pixels
+       
+    const drawTrail = () => {
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.85)'; // Solid white
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+        let lastTime = null;
+
+        function animate(timestamp) {
+            if (!lastTime) {
+                lastTime = timestamp;
+            }
+            const deltaTime = timestamp - lastTime;
+            lastTime = timestamp;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
+
+            particles.forEach(particle => {
+                particle.update(deltaTime);
+                particle.drawRough();
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        requestAnimationFrame(animate);
+        let interactionActive = false;
+    let forceStrength = 0.005; // Initial strength of the force
+
+    function applyForce(event) {
+        if (!interactionActive) return;
+
+        const points = event.touches ? Array.from(event.touches) : [{ clientX: event.clientX, clientY: event.clientY }];
+
+        particles.forEach(particle => {
+            points.forEach(point => {
+                const dx = particle.x - point.clientX;
+                const dy = particle.y - point.clientY;
+                let distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance < 1) distance = 1; // Prevent division by zero
+
+                // Repulsion force
+                const force = 1000; // Base force for interaction
+                const strength = 0.005; // Strength of the force
+
+                const forceX = (dx / distance) * force * strength;
+                const forceY = (dy / distance) * force * strength;
+
+                particle.applyForce(forceX, forceY);
+            });
+        });
+    }
+
+    let interactionTimeout;
+let addParticleTimeout;
+
+function clear(timeouts_and_intervals, end_screen_saver = true) {
+    if(end_screen_saver) {
+        screensavermode = false;
+    }
+    timeouts_and_intervals.forEach(function(timeour_or_interval) {
+        clearTimeout(timeour_or_interval);
+        clearInterval(timeour_or_interval);
+    });
+}
+// interaction function
+function interaction(event) {
+    if (interactionActive) {
+        applyForce(event);
+        forceStrength -= 0.001; // Gradually decrease the force strength
+        forceStrength = Math.max(forceStrength, 0.005); // Don't let the force strength go below 0.005
+    }
+    clear([interactionTimeout, addParticleTimeout]);
+}
+    let forceInterval;
+
+// startInteraction function
+function startInteraction(event) {
+    event.preventDefault();
+    interactionActive = true;
+    forceStrength = 0.005; // Reset force strength on new interaction
+    applyForce(event);
+    forceInterval = setInterval(() => applyForce(event), 100); // Apply force every 100ms
+    clear([interactionTimeout, addParticleTimeout]);
+}
+
+    let screensavermode = false;
+
+    function createRandomOutsideParticle() {
+        if(!screensavermode) {
+            return null;
+        }
+        clear([addParticleTimeout, interactionTimeout], false);
+        if (particles.length < 240) {
+            // Generate a random position outside the viewport
+            let x, y;
+            const side = Math.floor(Math.random() * 4); // Randomly choose a side (0: top, 1: right, 2: bottom, 3: left)
+            switch (side) {
+                case 0: // Top
+                    x = Math.random() * canvas.width;
+                    y = -24; // Outside the top edge
+                    break;
+                case 1: // Right
+                    x = canvas.width + 24; // Outside the right edge
+                    y = Math.random() * canvas.height;
+                    break;
+                case 2: // Bottom
+                    x = Math.random() * canvas.width;
+                    y = canvas.height + 24; // Outside the bottom edge
+                    break;
+                case 3: // Left
+                    x = -24; // Outside the left edge
+                    y = Math.random() * canvas.height;
+                    break;
+            }
+                        // Set the gravitational center to a random location within the canvas
+                        gravitationalCenter = { x: Math.random() * canvas.width, y: Math.random() * canvas.height };
+            // Create the new particle
+            particles.push(new Particle(getRandomRadius(5, 24), x, y));
+            console.log('Particle created due to inactivity');
+        }
+        addParticleTimeout = setTimeout(createRandomOutsideParticle, Math.random() * (30000 - 5000) + 5000);
+    }
+
+    function endInteraction(event) {
+        if(event) {
+            event.preventDefault();
+        }
+        interactionActive = false;
+        forceStrength = 0.005; // Reset force strength
+        clear([interactionTimeout, addParticleTimeout, forceInterval]);
+
+        // Set a timeout to add a new particle if there's no interaction for 5 seconds
+        interactionTimeout = setTimeout(function() {
+            screensavermode = true;
+            createRandomOutsideParticle();
+
+            // Set the timeout again to add another particle if there's still no interaction
+            addParticleTimeout = setTimeout(createRandomOutsideParticle, Math.random() * (30000 - 5000) + 5000);
+        }, 30000);
+    }
+
+    let lastTap = 0;
+
+
+    function createOrDeleteParticle(x, y) {
+        let tappedParticleIndex = -1;
+        // Loop through all particles to find if a particle has been tapped/clicked
+        for (let i = 0; i < particles.length; i++) {
+            const dx = x - particles[i].x;
+            const dy = y - particles[i].y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            // If the distance is less than the particle's radius, a particle has been tapped/clicked
+            if (distance < particles[i].radius) {
+                tappedParticleIndex = i;
+                break;
+            }
+        }
+        // If a particle was tapped/clicked, remove it from the particles array
+        if (tappedParticleIndex !== -1) {
+            particles.splice(tappedParticleIndex, 1);
+           // console.log('Particle deleted at index:', tappedParticleIndex); // Log the deletion
+        } else {
+            // If no particle was tapped/clicked, create a new particle at the tapped/clicked location
+           // console.log(particles.length);
+           particles.push(new Particle(getRandomRadius(8, 25), x, y));
+           //console.log(particles.length);
+           // console.log('Particle created at:', x, y); // Log the creation
+        }
+    }
+
+    canvas.addEventListener('touchend', function(event) {
+        const currentTime = Date.now();
+        const tapLength = currentTime - lastTap;
+        if (tapLength < 500 && tapLength > 0) {
+            event.preventDefault();
+            const touchX = event.changedTouches[0].clientX;
+            const touchY = event.changedTouches[0].clientY;
+            createOrDeleteParticle(touchX, touchY);
+        } else {
+            endInteraction(event);
+        }
+        lastTap = currentTime;
+
+        clearInterval(forceInterval); // Clear the timeout to prevent new particle creation
+    });
+
+    canvas.addEventListener('dblclick', function(event) {
+        const clickX = event.clientX;
+        const clickY = event.clientY;
+        createOrDeleteParticle(clickX, clickY);
+       // clearInterval(interactionTimeout); // Clear the timeout to prevent new particle creation
+       // clearInterval(addParticleTimeout); // Clear the timeout to prevent new particle creation
+        clear([interactionTimeout, addParticleTimeout]);
+    });
+
+
+    canvas.addEventListener('mousedown', startInteraction);
+    canvas.addEventListener('mousemove', interaction);
+
+    canvas.addEventListener('touchstart', startInteraction);
+    // Throttle function
+    function throttle(func, delay) {
+        let lastCall = 0;
+        return function(...args) {
+            const now = new Date().getTime();
+            if (now - lastCall < delay) {
+                return;
+            }
+            lastCall = now;
+            return func(...args);
+        };
+    }
+
+    // Add event listener with throttled interaction function
+    canvas.addEventListener('touchmove', throttle(interaction, 300));
+
+    canvas.addEventListener('mouseup', endInteraction);
+canvas.addEventListener('mouseleave', endInteraction);
+canvas.addEventListener('touchend', endInteraction);
+canvas.addEventListener('touchcancel', endInteraction);
+
+
+ canvas.addEventListener('mousemove', function(event) {
+    gravitationalCenter = { x: event.clientX, y: event.clientY };
+}); 
+
+
+canvas.addEventListener('touchstart', function(event) {
+   // clearInterval(interactionTimeout); // Clear the timeout to prevent new particle creation
+   //     clearInterval(addParticleTimeout); // Clear the timeout to prevent new particle creation
+        clear([interactionTimeout, addParticleTimeout]);
+    gravitationalCenter = { x: event.touches[0].clientX, y: event.touches[0].clientY };
+});
+
+// Listen for the deviceorientation event
+window.addEventListener('deviceorientation', function(event) {
+    try {
+        clear([interactionTimeout, addParticleTimeout]);
+        // event.alpha is the compass direction the device is facing in degrees
+        // event.beta is the device front-to-back tilt in degrees (-180 to 180)
+        // event.gamma is the device left-to-right tilt in degrees (-90 to 90)
+
+        // Map the tilt to the canvas dimensions
+        const tiltX = map(event.gamma, -90, 90, 0, canvas.width);
+        const tiltY = map(event.beta, -180, 180, 0, canvas.height);
+
+        // Update the gravitational center
+        gravitationalCenter = { x: tiltX, y: tiltY };
+    } catch (error) {
+        console.log('An error occurred:', error);
+    }
+});
+
+// Helper function to map a value from one range to another
+function map(value, in_min, in_max, out_min, out_max) {
+    return (value - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
+
+    function handleFirstTouch(event) {
+        const overlay = document.getElementById('overlay');
+        if (overlay) overlay.remove();
+        canvas.removeEventListener('touchstart', handleFirstTouch);
+        canvas.removeEventListener('mousedown', handleFirstTouch);
+        // Rest of your code
+    }
+
+    document.body.addEventListener('touchstart', handleFirstTouch);
+    document.body.addEventListener('mousedown', handleFirstTouch);
+    //end interaction is called at least once after verything is loaded with an event
+    endInteraction(null);   </script>
+</body>
+</html>
