@@ -118,7 +118,7 @@
                 this.attractionStrength = Math.random() * 0.002;
                 this.setRoughStyle(); // Call this method to set a random style
                 this.rotation = 0; // Initial rotation angle
-                this.rotationSpeed = Math.random() * 0.4; // Random rotation speed
+                this.rotationSpeed = 0.04; // Random rotation speed
 
             }
 
@@ -317,7 +317,7 @@ this.roughOptions.hachureAngle = (this.rotation * 180 / Math.PI) % 360;
         particles = particles.concat(Array.from({length: 12}, () => new Particle(getRandomRadius(9, 25)))); // Other half between 18 and 25 pixels
        
     const drawTrail = () => {
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.85)'; // Solid white
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.95)'; // Solid white
         ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 
@@ -330,7 +330,8 @@ this.roughOptions.hachureAngle = (this.rotation * 180 / Math.PI) % 360;
             const deltaTime = timestamp - lastTime;
             lastTime = timestamp;
 
-            ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
+            //ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
+            drawTrail();
 
             particles.forEach(particle => {
                 particle.update(deltaTime);
