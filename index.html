@@ -97,8 +97,34 @@
         // Helper functions
         const lerp = (a, b, t) => (1 - t) * a + t * b; // Linear interpolation
         const getRandomColor = () => {
-            const h = Math.random() * 360;
-            return `hsl(${h}, 100%, 50%)`; // Use HSL for neon colors
+            const colors = [
+                [120, 100, 60], // green
+                [240, 100, 60], // blue
+                [0, 100, 60], // red
+                [60, 100, 60], // yellow
+                [300, 100, 60], // magenta
+                [180, 100, 60], // cyan
+                [30, 100, 60], // orange
+                [90, 100, 60], // chartreuse
+                [150, 100, 60], // spring green
+                [210, 100, 60], // azure
+                [270, 100, 60], // violet
+                [330, 100, 60], // rose
+                [45, 100, 60], // amber
+                [75, 100, 60], // lime
+                [105, 100, 60], // harlequin
+                [195, 100, 60], // turquoise
+                [225, 100, 60], // cerulean
+                [255, 100, 60], // azure
+                [285, 100, 60], // electric purple
+                [315, 100, 60], // hot pink
+            ];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            let [h, s, l] = color;
+            h += Math.floor(Math.random() * 10) - 5; // Add a random variation to hue
+            s += Math.floor(Math.random() * 10) - 5; // Add a random variation to saturation
+            l += Math.floor(Math.random() * 10) - 5; // Add a random variation to lightness
+            return `hsl(${h}, ${s}%, ${l}%)`; // Use HSL for bright colors
         };
         const getRandomSpeed = () => (Math.random() - 0.5) * 2;
         const getRandomRadius = (min, max) => Math.random() * (max - min) + min;
@@ -116,25 +142,30 @@
                 this.spinY = Math.random() * 4 - 2;
                 this.repulsionStrength = Math.random() * 0.001;
                 this.attractionStrength = Math.random() * 0.002;
-                this.setRoughStyle(); // Call this method to set a random style
+                this.setRoughStyle(radius); // Call this method to set a random style
                 this.rotation = 0; // Initial rotation angle
                 this.rotationSpeed = 0.04; // Random rotation speed
 
             }
 
-            setRoughStyle() {
-    const shapes = ['circle'];
-   // const fillStyles = ['hachure', 'solid', 'zigzag', 'cross-hatch', 'dots', 'dashed', 'zigzag-line'];
-   const fillStyles = ['hachure', 'solid', 'zigzag', 'cross-hatch', 'dashed', 'zigzag-line'];
-    this.roughShape = shapes[Math.floor(Math.random() * shapes.length)];
-    this.roughOptions = {
-        fill: this.color,
-        roughness: Math.random() * 1,
-        bowing: Math.random() * 2,
-        fillStyle: fillStyles[Math.floor(Math.random() * fillStyles.length)],
-        // other Rough.js options can be added here
-    };
-}
+            setRoughStyle(radius) {
+                const shapes = ['circle'];
+                let fillStyles = ['hachure', 'solid', 'zigzag', 'cross-hatch', 'dashed', 'zigzag-line'];
+
+                if (radius < 10) {
+                    fillStyles = fillStyles.filter(style => style !== 'zigzag');
+                }
+
+                this.roughShape = shapes[Math.floor(Math.random() * shapes.length)];
+                this.roughOptions = {
+                    fill: this.color,
+                    roughness: Math.random() * 1,
+                    bowing: Math.random() * 2,
+                    hachureGap: Math.floor(Math.random() * 6) + 5,
+                    fillStyle: fillStyles[Math.floor(Math.random() * fillStyles.length)],
+                    // other Rough.js options can be added here
+                };
+            }
 
 drawTriangle() {
     // Calculate triangle vertices
