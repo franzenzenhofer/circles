@@ -508,13 +508,14 @@ function startInteraction(event) {
         // If a particle was tapped/clicked, remove it from the particles array
         if (tappedParticleIndex !== -1) {
             particles.splice(tappedParticleIndex, 1);
-           // console.log('Particle deleted at index:', tappedParticleIndex); // Log the deletion
         } else {
             // If no particle was tapped/clicked, create a new particle at the tapped/clicked location
-           // console.log(particles.length);
-           particles.push(new Particle(getRandomRadius(8, 25), x, y));
-           //console.log(particles.length);
-           // console.log('Particle created at:', x, y); // Log the creation
+            particles.push(new Particle(getRandomRadius(8, 25), x, y));
+            // Set the gravitational center to a random point within the canvas
+            gravitationalCenter = { 
+                x: Math.random() * canvas.width, 
+                y: Math.random() * canvas.height 
+            };
         }
     }
 
